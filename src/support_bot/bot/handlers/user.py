@@ -7,6 +7,8 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from support_bot.bot.handlers.admin import admin_chat
+
 from support_bot.bot.api_client import (
     ApiClientError,
     RateLimitedError,
@@ -70,6 +72,14 @@ async def _notify_admin(
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext, api: SupportApiClient) -> None:
     await state.clear()
+    if await admin_chat(message):
+        return
+    
+    # если у пользователя есть активные тикеты, мы пишем, что у него уже есть тикет
+    print(active_ticket_by_user)
+    if active_ticket_by_user.get(message.from_user.id):
+        await message.answer("У вас уже есть активный тикет. Пожалуйста, дождитесь ответа от поддержки.")
+        return
     try:
         await api.ensure_user(
             telegram_id=message.from_user.id,

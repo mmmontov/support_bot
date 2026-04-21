@@ -55,6 +55,7 @@ class SupportApiClient:
         telegram_id: int,
         text: str | None,
     ) -> None:
+        '''Добавляет сообщение пользователя в тикет'''
         payload = {"telegram_id": telegram_id, "text": text}
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
@@ -75,6 +76,7 @@ class SupportApiClient:
         r.raise_for_status()
 
     async def close_ticket(self, ticket_id: int) -> dict[str, Any]:
+        '''Закрывает тикет'''
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
                 self._url(f"/tickets/{ticket_id}/close"),
@@ -84,6 +86,7 @@ class SupportApiClient:
         return r.json()
 
     async def ticket_by_admin_message(self, message_id: int) -> dict[str, Any] | None:
+        '''Получает информацию о тикете по ID административного сообщения'''
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 self._url(f"/tickets/by-admin-message/{message_id}"),
@@ -95,6 +98,7 @@ class SupportApiClient:
         return r.json()
 
     async def register_admin_message(self, ticket_id: int, admin_message_id: int) -> None:
+        '''Регистрирует ID административного сообщения в тикете'''
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
                 self._url(f"/tickets/{ticket_id}/register-admin-message"),
@@ -111,6 +115,7 @@ class SupportApiClient:
         ticket_id: int,
         text: str | None,
     ) -> dict[str, Any]:
+        '''Записывает ответ администратора в тикет'''
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
                 self._url(f"/tickets/{ticket_id}/admin-reply"),
@@ -121,6 +126,7 @@ class SupportApiClient:
         return r.json()
 
     async def ensure_user(self, *, telegram_id: int, username: str | None) -> dict[str, Any]:
+        '''Гарантирует, что пользователь существует в базе данных'''
         payload = {"telegram_id": telegram_id, "username": username}
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
@@ -132,6 +138,7 @@ class SupportApiClient:
         return r.json()
 
     async def get_user(self, telegram_id: int) -> dict[str, Any] | None:
+        '''Получает информацию о пользователе по ID'''
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 self._url(f"/users/{telegram_id}"),
@@ -142,7 +149,26 @@ class SupportApiClient:
         r.raise_for_status()
         return r.json()
 
+    async def get_all_active_tickets(self) -> list[dict[str, Any]]:
+        '''Получает все активные тикеты'''
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.get(
+                self._url("/tickets/all-active"),
+                headers=self._headers,
+            )
+        r.raise_for_status()
+        return r.json()
 
+    async def close_all_active_tickets(self) -> None:
+        '''Закрывает все активные тикеты'''
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(
+                self._url("/tickets/close-all-active"),
+                headers=self._headers,
+            )
+        r.raise_for_status()
+        return r.json()
+        
 class RateLimitedError(Exception):
     pass
 

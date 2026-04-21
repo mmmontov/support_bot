@@ -35,6 +35,29 @@ def _extract_text(message: Message) -> str | None:
     return None
 
 
+@router.message(admin_chat, Command("close_all"))
+async def cmd_close_all_active_tickets(message: Message, api: SupportApiClient) -> None:
+    tickets = await api.close_all_active_tickets()
+    for ticket in tickets:
+        ticket_id = int(ticket["ticket_id"])
+        user_tg = int(ticket["user_telegram_id"])
+        active_ticket_by_user.pop(user_tg, None)
+        try:
+            await message.bot.send_message(user_tg, "Ваш диалог закрыт")
+        except Exception as e:
+            logger.warning("notify user close: %s", e)
+    await message.reply(f"Было закрыто {len(tickets)} тикет(ов)")
+
+
+@router.message(admin_chat, Command("tickets"))
+async def cmd_get_all_active_tickets(message: Message, api: SupportApiClient) -> None:
+    tickets = await api.get_all_active_tickets()
+    if tickets:
+        
+        await message.reply(f"Всего {len(tickets)} тикет(ов)\n" +
+                            "\n".join([f"[TICKET #{ticket['ticket_id']}] - {ticket['topic']}" for ticket in tickets]))
+
+
 @router.message(admin_chat, Command("close"), F.reply_to_message)
 async def cmd_close(message: Message, api: SupportApiClient) -> None:
     mid = message.reply_to_message.message_id

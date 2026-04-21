@@ -22,6 +22,33 @@ router = APIRouter(
 )
 
 
+@router.get("/all-active", response_model=list[TicketLookupResponse])
+async def get_all_active_tickets(session: DbSession) -> list[TicketLookupResponse]:
+    tickets = await ticket_service.get_all_active_tickets(session)
+    
+    return [TicketLookupResponse(
+        ticket_id=t.id,
+        user_id=t.user_id,
+        user_telegram_id=t.user.telegram_id,
+        status=t.status,
+        topic=t.topic,
+    ) for t in tickets]
+
+
+
+@router.post("/close-all-active") 
+async def close_all_active_tickets(session: DbSession) -> list[TicketLookupResponse]:
+    tickets = await ticket_service.get_all_active_tickets(session)
+    await ticket_service.close_all_active_tickets(session)
+    return [TicketLookupResponse(
+        ticket_id=t.id,
+        user_id=t.user_id,
+        user_telegram_id=t.user.telegram_id,
+        status=t.status,
+        topic=t.topic,
+    ) for t in tickets]
+
+
 @router.post("/create", response_model=CreateTicketResponse)
 async def create_ticket(
     body: CreateTicketBody,

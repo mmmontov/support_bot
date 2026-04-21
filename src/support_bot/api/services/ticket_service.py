@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from support_bot.db.models.admin_message_map import AdminMessageMap
@@ -62,6 +63,16 @@ async def ensure_user(
     """Создать пользователя или обновить username. Новая строка: last_ticket_time=None."""
     return await get_or_create_user(session, telegram_id, username)
 
+
+async def get_all_active_tickets(session: AsyncSession) -> list[Ticket]:
+    r = await session.execute(select(Ticket).where(Ticket.status == TicketStatus.open).options(selectinload(Ticket.user)))
+    return list(r.scalars().all())
+
+
+async def close_all_active_tickets(session: AsyncSession) -> None:
+    await session.execute(update(Ticket).where(Ticket.status == TicketStatus.open).values(status=TicketStatus.closed))
+    await session.commit()
+    
 
 async def create_ticket(
     session: AsyncSession,
