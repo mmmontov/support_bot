@@ -76,7 +76,6 @@ async def cmd_start(message: Message, state: FSMContext, api: SupportApiClient) 
         return
     
     # если у пользователя есть активные тикеты, мы пишем, что у него уже есть тикет
-    print(active_ticket_by_user)
     if active_ticket_by_user.get(message.from_user.id):
         await message.answer("У вас уже есть активный тикет. Пожалуйста, дождитесь ответа от поддержки.")
         return
