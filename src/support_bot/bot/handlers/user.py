@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from aiogram import F, Router
+from aiogram.enums import ContentType
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -34,6 +35,8 @@ def _extract_text(message: Message) -> str | None:
         return message.text
     if message.caption:
         return message.caption
+    if message.content_type and message.content_type != ContentType.TEXT:
+        return f"[{message.content_type}]"
     return None
 
 
@@ -58,15 +61,20 @@ async def _notify_admin(
     )
     sent = await bot.send_message(settings.admin_chat_id, header)
     await api.register_admin_message(ticket_id, sent.message_id)
-    if source_message and (
-        source_message.photo or source_message.document or source_message.video
-    ):
-        copied = await bot.copy_message(
-            chat_id=settings.admin_chat_id,
-            from_chat_id=source_message.chat.id,
-            message_id=source_message.message_id,
-        )
-        await api.register_admin_message(ticket_id, copied.message_id)
+    if source_message and source_message.content_type != ContentType.TEXT:
+        try:
+            copied = await bot.copy_message(
+                chat_id=settings.admin_chat_id,
+                from_chat_id=source_message.chat.id,
+                message_id=source_message.message_id,
+            )
+            await api.register_admin_message(ticket_id, copied.message_id)
+        except Exception:
+            logger.exception(
+                "copy_message failed for ticket %s (content_type=%s)",
+                ticket_id,
+                source_message.content_type,
+            )
 
 
 @router.message(Command("start"))
